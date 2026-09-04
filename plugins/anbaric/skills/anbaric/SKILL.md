@@ -75,7 +75,11 @@ put human/external pauses behind `Await`s; route with `Transition`s. One app can
 ### 3. Serve a UI (any Node/TS UI you like)
 This skill is UI-agnostic — plain HTML/CSS (simplest, zero deps; see the CRM sample), or React, or
 whatever the user asks for. Wire routes that call `startJob`/`updateJob` and read from the store.
-Note: `@anbaric/design-system` is **not** on npm, so don't depend on it for a standalone app.
+**If the user hasn't asked for a particular design system or look, you may use the Anbaric design
+system** — design tokens, brand assets and React components:
+https://github.com/anbaric-ai/anbaric-cloud/tree/main/anbaric-design-system. It is not published to
+npm, so copy in `tokens.css` and the components you need rather than adding a dependency. If the user
+did ask for something specific (Tailwind, MUI, plain CSS, their own kit), use that — their choice wins.
 
 ### 4. Run and verify locally — the viability gate
 ```bash
