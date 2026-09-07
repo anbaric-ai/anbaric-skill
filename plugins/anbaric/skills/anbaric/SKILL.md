@@ -75,6 +75,12 @@ put human/external pauses behind `Await`s; route with `Transition`s. One app can
 ### 3. Serve a UI (any Node/TS UI you like)
 This skill is UI-agnostic — plain HTML/CSS (simplest, zero deps; see the CRM sample), or React, or
 whatever the user asks for. Wire routes that call `startJob`/`updateJob` and read from the store.
+
+**Read `reference/patterns/ux-practices.md` before you build a human-facing UI** (or call the
+`anbaric_ux_guidance` MCP tool). Anbaric apps are asynchronous: `updateJob` returns once the change
+is stored and queued, not once the job has moved. So a UI must acknowledge the submission
+immediately, then poll the job — at most once per second — until it settles, and say plainly when a
+job has failed. Skipping that produces a UI that looks broken while working perfectly.
 **If the user hasn't asked for a particular design system or look, you may use the Anbaric design
 system** — design tokens, brand assets and React components:
 https://github.com/anbaric-ai/anbaric-cloud/tree/main/anbaric-design-system. It is not published to
@@ -177,6 +183,7 @@ Bundled under `reference/` (the platform's own guide). Read the one you need for
 - `reference/patterns/human-in-the-loop.md` — `Await`, forms, approvals
 - `reference/patterns/integrating-external-systems.md` — webhooks, callbacks, polling
 - `reference/patterns/authorization.md` — actors, roles, access control
+- `reference/patterns/ux-practices.md` — feedback and polling for an asynchronous UI
 - `reference/patterns/testing.md` — driving a machine in memory (Vitest)
 - `reference/features/documents-and-secrets.md`, `reference/features/sql-store.md` — stores
 - `reference/features/ai-agents.md` — LLM-backed actors

@@ -22,7 +22,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     try {
         const result = await tool.run(request.params.arguments ?? {});
-        return { content: [{ type: "text", text: JSON.stringify(result ?? null, null, 2) }] };
+        // A tool that already answers in prose is passed straight through;
+        // stringifying it would hand back an escaped blob to read.
+        const text = typeof result === "string" ? result : JSON.stringify(result ?? null, null, 2);
+        return { content: [{ type: "text", text }] };
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return { content: [{ type: "text", text: message }], isError: true };

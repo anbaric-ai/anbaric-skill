@@ -16987,6 +16987,9 @@ var awaitLive = async (client, appName) => {
   return { status: "timed out" };
 };
 
+// src/guidance.ts
+var UX_GUIDANCE = '# UX practices for Anbaric apps\n\nAnbaric apps are asynchronous by nature: submitting a form doesn\'t finish the\nwork, it hands a job to a state machine that then moves on its own. A UI that\nignores that feels broken even when everything is working. These are the\npractices to follow when you build a human-facing interface on Anbaric.\n\n## Acknowledge a submission immediately\n\n**Always give feedback the moment a job update is submitted.** `updateJob` and\n`startJob` return once the change is *stored and queued* \u2014 not once the job has\nprogressed. If the page sits silent, the person cannot tell whether their click\nregistered, and will click again.\n\nSay what happened and what is happening next:\n\n```\n\u2713 Approval submitted \u2014 the job is being processed\u2026\n```\n\nDisable the button while the request is in flight so the same update can\'t be\nsent twice.\n\n## Then follow the job until it settles\n\nAfter acknowledging, watch the job so the page reflects reality rather than a\nguess. Poll it and re-render as the state changes:\n\n- **Poll at most once per second.** Anything faster adds load without telling\n  the user anything new; a job that transitions immediately is still only\n  observable per processing pass.\n- **Stop when there is nothing left to wait for** \u2014 the job reached a terminal\n  state, parked on an `Await`, or failed. Don\'t poll a settled job forever.\n- **Show the state, not just a spinner.** "Awaiting approval", "Charging card",\n  "Failed \u2014 card declined" tells someone far more than an endless whirl.\n- **Back off or stop after a reasonable period**, and say so, rather than\n  spinning indefinitely if nothing changes.\n\nA job that has parked on an `Await` is waiting for a *person*, possibly not the\none at the screen. Say what it is waiting for rather than implying the page is\nstill loading.\n\n## Surface failures honestly\n\nA job whose action threw is `Job.Status.FAILED`, with the reason in its audit\ntrail. Show that the work stopped and why. Silently leaving the last-known state\non screen turns a failure into a mystery.\n\n## Styling (optional)\n\nIf the user hasn\'t asked for a particular look, you may use the **Anbaric design\nsystem** \u2014 design tokens, brand assets and React components:\n<https://github.com/anbaric-ai/anbaric-cloud/tree/main/anbaric-design-system>.\nIt isn\'t published to npm, so copy in `tokens.css` and the components you need\nrather than adding a dependency. If the user asked for something specific \u2014\nTailwind, MUI, plain CSS, their own kit \u2014 use that instead; their choice wins.\n\n## See also\n\n- [Awaiting input](../features/awaiting-input.md) \u2014 pausing a job for a human\n- [Human-in-the-loop](human-in-the-loop.md) \u2014 approvals, forms and hand-offs\n- [Serving a web UI](../features/serving-a-web-ui.md) \u2014 putting data on a page\n';
+
 // src/tools.ts
 var noInput = { type: "object", properties: {}, additionalProperties: false };
 var object3 = (properties, required2 = []) => ({ type: "object", properties, required: required2, additionalProperties: false });
@@ -17020,6 +17023,12 @@ var fetchLogs = async (client, appName, lines) => {
   return buffer.split("\n").filter((row) => row.length > 0).slice(-lines);
 };
 var tools = [
+  {
+    name: "anbaric_ux_guidance",
+    description: "Read this BEFORE building any human-facing UI for an Anbaric app. Anbaric apps are asynchronous - submitting a form hands work to a state machine rather than completing it - so a UI that neither acknowledges the submission nor follows the job afterwards reads as broken even when it is working. Returns the platform's UX practices: acknowledging an update immediately, polling the job until it settles (at most once per second), surfacing failed jobs, and optional styling guidance.",
+    inputSchema: noInput,
+    run: async () => UX_GUIDANCE
+  },
   {
     name: "anbaric_whoami",
     description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs.",
@@ -17180,7 +17189,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (!tool) throw new Error(`No such tool "${request.params.name}"`);
   try {
     const result = await tool.run(request.params.arguments ?? {});
-    return { content: [{ type: "text", text: JSON.stringify(result ?? null, null, 2) }] };
+    const text = typeof result === "string" ? result : JSON.stringify(result ?? null, null, 2);
+    return { content: [{ type: "text", text }] };
   } catch (error2) {
     const message = error2 instanceof Error ? error2.message : String(error2);
     return { content: [{ type: "text", text: message }], isError: true };

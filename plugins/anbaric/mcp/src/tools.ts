@@ -1,6 +1,7 @@
 import {PlatformClient} from "./platform/PlatformClient";
 import {actorName, anbaricClient} from "./client";
 import {deployApp} from "./deploy";
+import {UX_GUIDANCE} from "./guidance";
 
 type Tool = {
     name : string,
@@ -47,6 +48,12 @@ const fetchLogs = async (client : PlatformClient, appName : string, lines : numb
 };
 
 const tools : Array<Tool> = [
+    {
+        name: "anbaric_ux_guidance",
+        description: "Read this BEFORE building any human-facing UI for an Anbaric app. Anbaric apps are asynchronous - submitting a form hands work to a state machine rather than completing it - so a UI that neither acknowledges the submission nor follows the job afterwards reads as broken even when it is working. Returns the platform's UX practices: acknowledging an update immediately, polling the job until it settles (at most once per second), surfacing failed jobs, and optional styling guidance.",
+        inputSchema: noInput,
+        run: async () => UX_GUIDANCE,
+    },
     {
         name: "anbaric_whoami",
         description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs.",
