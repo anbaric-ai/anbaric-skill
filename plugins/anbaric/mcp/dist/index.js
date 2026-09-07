@@ -17174,7 +17174,7 @@ var tools = [
 
 // src/index.ts
 var server = new Server(
-  { name: "anbaric", version: "1.22.0" },
+  { name: "anbaric", version: "1.25.0" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

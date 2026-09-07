@@ -13,7 +13,7 @@ Anbaric Cloud.
 ## Install
 
 ```
-/plugin marketplace add anbaric-ai/anbaric-claude-plugin
+/plugin marketplace add anbaric-ai/anbaric-skill
 /plugin install anbaric@anbaric
 ```
 

@@ -5,10 +5,6 @@ work, it hands a job to a state machine that then moves on its own. A UI that
 ignores that feels broken even when everything is working. These are the
 practices to follow when you build a human-facing interface on Anbaric.
 
-## Allow refreshes
-
-The app should include a refresh button that triggers either the data to update or a full page refresh. This is true on any page that might be subject to background processing.
-
 ## Acknowledge a submission immediately
 
 **Always give feedback the moment a job update is submitted.** `updateJob` and
