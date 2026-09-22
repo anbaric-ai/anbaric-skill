@@ -110,6 +110,11 @@ whatever the user asks for. Wire routes that call `startJob`/`updateJob` and rea
 is stored and queued, not once the job has moved. So a UI must acknowledge the submission
 immediately, then poll the job — at most once per second — until it settles, and say plainly when a
 job has failed. Skipping that produces a UI that looks broken while working perfectly.
+**Poll through an API and update the page in place** — serve the job's state as JSON (read it from
+the machine's persistence, `serializeJob` it) and `fetch` it from the page. Never make the page reload
+to show progress (no form-`POST`-then-redirect, meta refresh or `location.reload()`); a full refresh
+is only the fallback when the client cannot run script. `reference/patterns/first-app.md` shows the
+shape.
 **If the user hasn't asked for a particular design system or look, you may use the Anbaric design
 system** — design tokens, brand assets and React components:
 https://github.com/anbaric-ai/anbaric-cloud/tree/main/anbaric-design-system. It is not published to
