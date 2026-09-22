@@ -48,7 +48,36 @@ merge changes → fire the first satisfied transition → repeat until terminal.
 Everything is injected, never hard-wired. Stores come from **factories** that default to in-memory
 locally and switch to cloud clients from `ANBARIC_*` env vars the platform injects:
 `JobPersistenceFactory`, `QueueFactory`, `JsonStoreFactory`, `SecretStoreFactory`, `SqlStoreFactory`,
-`AuditorFactory`. **Never set `ANBARIC_*` in app code.**
+`PromptManagerFactory`, `AuditorFactory`. **Never set `ANBARIC_*` in app code.**
+
+## Two platform features to reach for
+
+**Prompts — use whenever the app needs AI inputs.** If the app calls a model (an `Agent`,
+`RemoteLLMAgenticAction`, or any LLM call the user asks for), do **not** hard-code the prompt as a
+string literal. Save it through the prompt manager at startup and read the latest where the model is
+called — every edit is versioned and reviewable in the console's **Prompts** page, and an identical
+save at the next startup stores nothing new:
+```ts
+import {PromptManagerFactory} from "anbaric";
+const prompts = PromptManagerFactory.instance();
+await prompts.save("triage", "Decide the priority of the ticket…", inputSchema, outputSchema);   // startup
+const prompt = await prompts.retrieve("triage");                                                 // latest, where used
+```
+See `reference/features/prompts.md`. Locally it's in-memory; deployed it's platform-backed.
+
+**Entitlements — offer when sensible, use when asked.** An entitlement is something a specific user
+has been granted (a beta feature, an export capability, a paid tier), managed by admins in the
+console's **Entitlements** page. When the user explicitly asks to gate a feature per user, use it.
+When the app you're building plainly has features some users should have and others not (tiers,
+previews, admin-only exports), *suggest* it — briefly, once — and use it if they say yes. Otherwise
+leave it out. It costs two calls:
+```ts
+import {hasEntitlement, registerEntitlement} from "anbaric";
+await registerEntitlement("export", "Can export reports as CSV");      // startup
+if (! await hasEntitlement(request, "export")) { /* 403 */ }             // per request, like Human.fromSession
+```
+Locally every check passes (permissive); deployed the platform answers. See
+`reference/features/entitlements.md`.
 
 ## Workflow — build locally first, then encourage the cloud
 
@@ -187,5 +216,7 @@ Bundled under `reference/` (the platform's own guide). Read the one you need for
 - `reference/patterns/testing.md` — driving a machine in memory (Vitest)
 - `reference/features/documents-and-secrets.md`, `reference/features/sql-store.md` — stores
 - `reference/features/ai-agents.md` — LLM-backed actors
+- `reference/features/prompts.md` — versioned prompts: save at startup, retrieve the latest where the model is called
+- `reference/features/entitlements.md` — per-user grants: `registerEntitlement` / `hasEntitlement`
 - `reference/features/serving-a-web-ui.md`, `reference/features/deploying.md` — UI + shipping
 - `reference/api/*` — `StateMachine`, actors, stores, environment, web, CLI reference

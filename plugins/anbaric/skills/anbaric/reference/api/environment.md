@@ -35,6 +35,8 @@ defaulting to a local implementation otherwise).
 | `ANBARIC_SECRET_STORE_TYPE` | the secret store | in-memory (encrypted) |
 | `ANBARIC_SQL_STORE_TYPE` | the SQL store (`sqlite` / `cloud`\|`postgres`) | SQLite |
 | `ANBARIC_SESSION_RESOLVER_TYPE` | how `Human.fromSession` resolves sessions | in-memory |
+| `ANBARIC_ENTITLEMENTS_TYPE` | how `hasEntitlement` is answered (`cloud` → platform) | permissive (always `true`) |
+| `ANBARIC_PROMPT_MANAGER_TYPE` | the [prompt manager](../features/prompts.md) | in-memory |
 
 ## Store configuration
 
