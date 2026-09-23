@@ -60,7 +60,7 @@ save at the next startup stores nothing new:
 ```ts
 import {PromptManagerFactory} from "anbaric";
 const prompts = PromptManagerFactory.instance();
-await prompts.save("triage", "Decide the priority of the ticket…", inputSchema, outputSchema);   // startup
+await prompts.save("triage", "Decide the priority of the ticket…", outputSchema);                // startup
 const prompt = await prompts.retrieve("triage");                                                 // latest, where used
 ```
 See `reference/features/prompts.md`. Locally it's in-memory; deployed it's platform-backed.
