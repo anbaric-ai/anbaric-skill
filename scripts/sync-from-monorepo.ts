@@ -1,4 +1,4 @@
-import {cp, mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
+import {access, cp, mkdir, readFile, readdir, rm, writeFile} from "node:fs/promises";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -24,9 +24,19 @@ const CLIENT_FILES = ["PlatformClient", "TokenSigner", "CliConfig", "AppConfig"]
 // reading anything off disk at run time.
 const GUIDANCE_DOC = ["patterns", "ux-practices.md"];
 
+/* Checked before anything is removed: pointed at the wrong directory, this
+   used to clear the reference docs and then fail to find their replacement,
+   leaving the skill with no docs at all. */
+const mustExist = async (path : string, what : string) => {
+    await access(path).catch(() => {
+        throw new Error(`Cannot find ${what} at ${path} - set ANBARIC_MONOREPO to the platform monorepo`);
+    });
+};
+
 const syncDocs = async () => {
     const source = join(monorepo, "anbaric", "docs");
     const destination = join(pluginRoot, "skills", "anbaric", "reference");
+    await mustExist(source, "the platform docs");
     await rm(destination, { recursive: true, force: true });
     await cp(source, destination, { recursive: true });
     const files = await readdir(destination, { recursive: true });
@@ -36,6 +46,7 @@ const syncDocs = async () => {
 const syncClient = async () => {
     const source = join(monorepo, "anbaric-cli", "src");
     const destination = join(pluginRoot, "mcp", "src", "platform");
+    await mustExist(source, "the CLI source");
     await mkdir(destination, { recursive: true });
     for (const name of CLIENT_FILES) {
         const contents = await readFile(join(source, `${name}.ts`), "utf8");
