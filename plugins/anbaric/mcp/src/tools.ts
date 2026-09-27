@@ -97,13 +97,30 @@ const tools : Array<Tool> = [
     },
     {
         name: "anbaric_jobs_list",
-        description: "List jobs, optionally filtered to a single workflow (state machine) id.",
+        description: "List jobs on the tenant, one page at a time, newest first by default. "
+            + "The platform holds every job across all apps and state machines; this returns a page of `pageSize` "
+            + "(default 100) at page `page` (from 0), so there is no cap - keep asking for the next page while `hasMore` "
+            + "is true. Filters (workflowId, appId, state, status, killed) narrow the set on the platform before paging, "
+            + "so they see every job, not just one page.",
         inputSchema: object({
-            workflowId: { type: "string", description: "Only return jobs for this state machine id" },
+            workflowId: { type: "string", description: "Only jobs of this state machine (workflow) id" },
+            appId: { type: "string", description: "Only jobs belonging to this app" },
+            state: { type: "string", description: "Only jobs currently in this state" },
+            status: { type: "string", description: "Only jobs with this status: \"active\", \"Awaiting input\" or \"Failed\"" },
+            killed: { type: "boolean", description: "true for killed jobs only, false to leave them out" },
+            page: { type: "integer", minimum: 0, description: "Which page, from 0 (default 0)" },
+            pageSize: { type: "integer", minimum: 1, maximum: 500, description: "Jobs per page (default 100)" },
+            order: { type: "string", enum: ["newest", "oldest"], description: "By when the job was started (default newest)" },
         }),
         run: async (args) => {
-            const jobs = await (await anbaricClient()).get("/jobs") as Array<{ workflowId? : string }>;
-            return args.workflowId ? jobs.filter(job => job.workflowId === args.workflowId) : jobs;
+            const page = args.page ?? 0;
+            const pageSize = args.pageSize ?? 100;
+            const parameters = new URLSearchParams({ page: String(page), pageSize: String(pageSize), order: args.order ?? "newest" });
+            for (const name of ["workflowId", "appId", "state", "status", "killed"]) {
+                if (args[name] !== undefined) parameters.set(name, String(args[name]));
+            }
+            const jobs = await (await anbaricClient()).get(`/jobs?${parameters}`) as Array<unknown>;
+            return { page, pageSize, count: jobs.length, hasMore: jobs.length === pageSize, jobs };
         },
     },
     {

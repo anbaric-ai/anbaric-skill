@@ -156,6 +156,11 @@ Prefer the **`anbaric_*` MCP tools** to drive and confirm the cloud: `anbaric_wh
 `anbaric_app_status`, `anbaric_jobs_list`, `anbaric_jobs_stats`, `anbaric_app_logs`. Confirm the app is
 live and jobs flow before declaring done.
 
+**Jobs are paged, not capped.** The platform keeps every job across all apps and state machines;
+`anbaric_jobs_list` (and `anbaric jobs list`, and `GET /api/v2/jobs`) returns one page — 100 by default,
+newest first — and `hasMore` tells you to ask for `page + 1`. To find particular jobs, filter on the
+platform with `workflowId`, `appId`, `state`, `status` or `killed` rather than paging through everything.
+
 ## Conventions (match the platform's own code)
 
 - Depend on tsapi-style interfaces via the factories; inject collaborators, don't hard-wire.
