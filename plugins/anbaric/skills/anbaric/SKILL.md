@@ -32,14 +32,17 @@ job moving `lead → contacted → qualified → won/lost`.
 - **State** — a named step. Holds **actions** (work to do while here) and **transitions** (where to go
   next). A state with no outgoing transitions is terminal.
 - **Action** — a unit of work with a `name`, an **actor**, and an async `run(job)` that returns a `Map`
-  of property changes. An optional `predicate(job)` gates whether it runs.
+  of property changes. An optional `predicate(job)` (may be async) gates whether it runs.
 - **Await** — a *pause* point (not an actor): parks the job until a human or external system supplies
   input. Has `fields` and a `resolveUrl(job)`.
-- **Transition** — `new Transition(toStateId, (job) => boolean)`: the first whose predicate is true fires.
+- **Transition** — `new Transition(toStateId, async (job) => boolean)`: the first whose predicate is true fires.
 - **PropertyDefinition** — schema for one property: `required` and a `validation(value) => boolean`.
 - **Actors** — every change is attributed: `new Code(id)` (your code), `new Human(id, role)` (a person;
   `Human.fromSession(req)` resolves the logged-in user when deployed), `Agent` (an LLM).
-- **Job** — one instance moving through a machine, carrying `properties` (a `Map`) and an audit trail.
+- **Job** — one instance moving through a machine, carrying `properties` and an audit trail.
+  **Property reads are async**: `await job.properties.get("email")`, `await job.properties.has("paid")`.
+  Properties load on demand, so predicates and guards that read them are `async`. A state can
+  `prewarm` what it needs (`state.prewarm = Reads.only("summary")`) to load it in one fetch.
 
 Drive a job three ways: `machine.startJob(properties, actor)`, `machine.updateJob(id, changes, actor)`,
 `machine.executeAction(id, action)`. Jobs progress **automatically**: run eligible actions → validate &
@@ -189,13 +192,13 @@ welcomeSent.validation = (v) => typeof v === "boolean";
 
 const sendWelcome = new Action("Send welcome email", new Code("welcome"));
 sendWelcome.run = async (job) => {
-    // ... send the email to job.properties.get("email") ...
+    // ... send the email to await job.properties.get("email") ...
     return new Map([["welcomeSent", true]]);
 };
 
 export const customers = new StateMachine("customers",
     [
-        new State("new", [sendWelcome], [new Transition("active", (job) => job.properties.get("welcomeSent") === true)]),
+        new State("new", [sendWelcome], [new Transition("active", async (job) => await job.properties.get("welcomeSent") === true)]),
         new State("active"),
     ],
     "new",

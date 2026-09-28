@@ -20,7 +20,7 @@ processItem.run = async (job) => {
 export const itemsMachine = (persistence : JobPersistence, queue : Queue) => new StateMachine(
     "items",
     [
-        new State("new", [processItem], [new Transition("done", (job) => job.properties.get("processed") === true)]),
+        new State("new", [processItem], [new Transition("done", async (job) => await job.properties.get("processed") === true)]),
         new State("done"),
     ],
     "new",
