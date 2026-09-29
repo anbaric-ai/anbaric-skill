@@ -16981,7 +16981,7 @@ var awaitLive = async (client, appName) => {
   const deadline = Date.now() + DEPLOY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const status = await client.get(`/apps/${encodeURIComponent(appName)}`);
-    if (status.status !== "building") return status;
+    if (status.status !== "building" && status.status !== "draining") return status;
     await new Promise((resolvePoll) => setTimeout(resolvePoll, POLL_INTERVAL_MS));
   }
   return { status: "timed out" };
@@ -17043,7 +17043,7 @@ var tools = [
   },
   {
     name: "anbaric_app_status",
-    description: "Get one app's deploy state (building / running / failed), port and recent build log.",
+    description: 'Get one app\'s deploy state (building / draining / running / failed / stopped), port and recent build log. "draining" means the running version has been told to stop taking on jobs and is finishing the steps it has in hand (`draining.inFlight`, five minutes at most) before it is replaced or removed.',
     inputSchema: object3({ name: { type: "string", description: "The app name" } }, ["name"]),
     run: async (args) => (await anbaricClient()).get(`/apps/${encodeURIComponent(args.name)}`)
   },
@@ -17058,7 +17058,7 @@ var tools = [
   },
   {
     name: "anbaric_deploy",
-    description: "Package a local Anbaric app directory (its .anbaric/app-config.json supplies name and port), upload it and wait for the build to go live. Returns the final status and URL. The developer must be signed in (`anbaric login`).",
+    description: "Package a local Anbaric app directory (its .anbaric/app-config.json supplies name and port), upload it and wait for the build to go live. A running version is drained first - it finishes the steps it has in hand, up to five minutes - so a redeploy never loses in-flight work; the wait covers that. Returns the final status and URL. The developer must be signed in (`anbaric login`).",
     inputSchema: object3({
       directory: { type: "string", description: "Path to the app project root (the folder containing .anbaric/app-config.json)" }
     }, ["directory"]),

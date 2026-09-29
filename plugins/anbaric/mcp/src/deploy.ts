@@ -53,9 +53,11 @@ const pack = async (appDir : string) : Promise<Buffer> => {
 
 const awaitLive = async (client : PlatformClient, appName : string) : Promise<{ status : string, log? : Array<string> }> => {
     const deadline = Date.now() + DEPLOY_TIMEOUT_MS;
+    // "draining" is the running version finishing the steps it has in hand
+    // before it is replaced (five minutes at most); "building" is the new one.
     while (Date.now() < deadline) {
         const status = await client.get(`/apps/${encodeURIComponent(appName)}`);
-        if (status.status !== "building") return status;
+        if (status.status !== "building" && status.status !== "draining") return status;
         await new Promise(resolvePoll => setTimeout(resolvePoll, POLL_INTERVAL_MS));
     }
     return { status: "timed out" };

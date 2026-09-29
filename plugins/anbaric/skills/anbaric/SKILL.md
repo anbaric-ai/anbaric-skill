@@ -155,6 +155,8 @@ anbaric login              # once per machine — browser auth (use `npx anbaric
 anbaric app configure      # writes .anbaric/app-config.json (name + internalPort)
 anbaric app deploy         # packs source, platform builds + runs it
 ```
+A redeploy shows `draining` before the swap: the running version finishes the steps it has in hand
+(up to five minutes) so no job is cut off mid-step. Wait it out; it is not an error.
 Prefer the **`anbaric_*` MCP tools** to drive and confirm the cloud: `anbaric_whoami`, `anbaric_deploy`,
 `anbaric_app_status`, `anbaric_jobs_list`, `anbaric_jobs_stats`, `anbaric_app_logs`. Confirm the app is
 live and jobs flow before declaring done.
