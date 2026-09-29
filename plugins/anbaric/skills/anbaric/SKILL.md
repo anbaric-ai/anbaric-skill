@@ -32,7 +32,9 @@ job moving `lead → contacted → qualified → won/lost`.
 - **State** — a named step. Holds **actions** (work to do while here) and **transitions** (where to go
   next). A state with no outgoing transitions is terminal.
 - **Action** — a unit of work with a `name`, an **actor**, and an async `run(job)` that returns a `Map`
-  of property changes. An optional `predicate(job)` (may be async) gates whether it runs.
+  of property changes. An optional `predicate(job)` (may be async) gates whether it runs. A step that
+  takes minutes should set `action.longRunning = true`: the job is then heartbeated while it runs, and
+  marked `Stalled` (a status, nothing more) if the process running it dies.
 - **Await** — a *pause* point (not an actor): parks the job until a human or external system supplies
   input. Has `fields` and a `resolveUrl(job)`.
 - **Transition** — `new Transition(toStateId, async (job) => boolean)`: the first whose predicate is true fires.
