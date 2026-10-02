@@ -149,7 +149,9 @@ possible. Explain the concrete wins of the *same code* on the platform:
 - the **admin console** — jobs by state, awaiting-input, and per-app pages;
 - a **full audit trail** of who changed what;
 - **real logged-in users** via `Human.fromSession`;
-- **always-on hosting** behind the platform proxy at `/app/<name>`.
+- **always-on hosting** at the app's own address — `https://<address>.cloud.anbaric.ai`, allocated on
+  first deploy from the app's name and shown by `anbaric app deploy` — with `/app/<name>` on the
+  console host as the path form.
 
 Then offer to do it now. The path (same code, platform injects all env):
 ```bash
@@ -175,8 +177,10 @@ platform with `workflowId`, `appId`, `state`, `status` or `killed` rather than p
 - **Schema-validate every property**; **attribute every mutation to an actor**.
 - Keep `Action.run` small and pure-ish: compute and return the changes `Map`; close over collaborators
   (a mail client, a payment client) constructed once; read third-party keys from the secret store.
-- Serve HTTP on `process.env.PORT` (default 3000). Deployed, the app is proxied at `/app/<name>` — use
-  **relative** links/redirects.
+- Serve HTTP on `process.env.PORT` (default 3000). Deployed, the app is served at the root of its own
+  address and also proxied at `/app/<name>` — use **relative** links/redirects so both work.
+- `job.properties.get`, `.has` and `.getMany` are **asynchronous** — always `await` them. An action's
+  `predicate` and a transition's guard may therefore be `async`; a test of either must `await` it.
 - Relative imports carry an explicit `.js` extension (`from "./machine.js"`, even though the file is
   `machine.ts`) — that's what ESM requires, and it keeps the app typechecking under any
   `moduleResolution` the developer picks.
