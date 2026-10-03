@@ -184,6 +184,10 @@ platform with `workflowId`, `appId`, `state`, `status` or `killed` rather than p
 - Relative imports carry an explicit `.js` extension (`from "./machine.js"`, even though the file is
   `machine.ts`) — that's what ESM requires, and it keeps the app typechecking under any
   `moduleResolution` the developer picks.
+- **A deployed app has 512 MB and 0.25 vCPU; Node's heap is ~270 MB of that.** Never hold jobs or
+  collections in module-level state: read properties lazily per step, page `store.list`, let the SQL
+  store filter and aggregate, keep stored files to a few MB and process them one part per step,
+  stream large HTTP responses. See `reference/patterns/memory.md` before anything data-heavy.
 
 ## A complete minimal shape
 
@@ -239,6 +243,7 @@ Bundled under `reference/` (the platform's own guide). Read the one you need for
 - `reference/patterns/integrating-external-systems.md` — webhooks, callbacks, polling
 - `reference/patterns/authorization.md` — actors, roles, access control
 - `reference/patterns/ux-practices.md` — feedback and polling for an asynchronous UI
+- `reference/patterns/memory.md` — the 512 MB footprint: how an OOM looks, and how not to hold data in the process
 - `reference/patterns/testing.md` — driving a machine in memory (Vitest)
 - `reference/features/documents-and-secrets.md`, `reference/features/sql-store.md` — stores
 - `reference/features/ai-agents.md` — LLM-backed actors
