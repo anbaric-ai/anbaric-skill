@@ -16821,20 +16821,20 @@ var PlatformClient = class {
   get tenant() {
     return this.options.tenant;
   }
-  async get(path) {
-    return this.request("GET", path);
+  async get(path, headers = {}) {
+    return this.request("GET", path, void 0, void 0, headers);
   }
-  async post(path, body) {
-    return this.request("POST", path, JSON.stringify(body), "application/json");
+  async post(path, body, headers = {}) {
+    return this.request("POST", path, JSON.stringify(body), "application/json", headers);
   }
-  async put(path, body) {
-    return this.request("PUT", path, JSON.stringify(body), "application/json");
+  async put(path, body, headers = {}) {
+    return this.request("PUT", path, JSON.stringify(body), "application/json", headers);
   }
-  async patch(path, body) {
-    return this.request("PATCH", path, JSON.stringify(body), "application/json");
+  async patch(path, body, headers = {}) {
+    return this.request("PATCH", path, JSON.stringify(body), "application/json", headers);
   }
-  async delete(path) {
-    return this.request("DELETE", path);
+  async delete(path, headers = {}) {
+    return this.request("DELETE", path, void 0, void 0, headers);
   }
   async postBinary(path, body, contentType) {
     return this.request("POST", path, new Uint8Array(body), contentType);
@@ -16856,8 +16856,8 @@ var PlatformClient = class {
       onChunk(decoder.decode(chunk, { stream: true }));
     }
   }
-  async request(method, path, body, contentType) {
-    const headers = {};
+  async request(method, path, body, contentType, extra = {}) {
+    const headers = { ...extra };
     if (contentType) headers["content-type"] = contentType;
     if (this.options.tenant) headers["x-anbaric-tenant"] = this.options.tenant;
     if (this.options.key) headers["authorization"] = `Bearer ${new TokenSigner(this.options.key).sign()}`;
@@ -17181,6 +17181,34 @@ var tools = [
     run: async (args) => {
       await (await anbaricClient()).post(`/jobs/${encodeURIComponent(args.jobId)}/kill`, {});
       return { id: args.jobId, killed: true };
+    }
+  },
+  {
+    name: "anbaric_secrets_list",
+    description: "List the names of the secrets a deployed app holds (API keys and other credentials it reads with SecretStoreFactory.instance().retrieve(name)). Values are never returned - they can only be set or replaced.",
+    inputSchema: object3({ app: { type: "string", description: "The app name" } }, ["app"]),
+    run: async (args) => (await anbaricClient()).get("/secrets", { "x-anbaric-app": args.app })
+  },
+  {
+    name: "anbaric_secret_set",
+    description: "Set or replace a secret for a deployed app, so the app can read it with `secrets.retrieve(name)`. Use this to give a deployed app a model API key or other credential: locally the app falls back to the environment (`openai-key` reads OPENAI_KEY), but a deployed app only has what is set here. Ask the developer for the value rather than guessing it, and never echo it back.",
+    inputSchema: object3({
+      app: { type: "string", description: "The app name" },
+      name: { type: "string", description: "The secret's name, e.g. openai-key" },
+      value: { type: "string", description: "The secret value" }
+    }, ["app", "name", "value"]),
+    run: async (args) => {
+      await (await anbaricClient()).put(`/secrets/${encodeURIComponent(args.name)}`, { value: args.value }, { "x-anbaric-app": args.app });
+      return { app: args.app, name: args.name, set: true };
+    }
+  },
+  {
+    name: "anbaric_secret_delete",
+    description: "Remove a secret from a deployed app.",
+    inputSchema: object3({ app: { type: "string", description: "The app name" }, name: { type: "string" } }, ["app", "name"]),
+    run: async (args) => {
+      await (await anbaricClient()).delete(`/secrets/${encodeURIComponent(args.name)}`, { "x-anbaric-app": args.app });
+      return { app: args.app, name: args.name, deleted: true };
     }
   }
 ];

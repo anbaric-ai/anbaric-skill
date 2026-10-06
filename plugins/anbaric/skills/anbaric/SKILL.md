@@ -182,6 +182,11 @@ platform with `workflowId`, `appId`, `state`, `status` or `killed` rather than p
 - **Schema-validate every property**; **attribute every mutation to an actor**.
 - Keep `Action.run` small and pure-ish: compute and return the changes `Map`; close over collaborators
   (a mail client, a payment client) constructed once; read third-party keys from the secret store.
+- **API keys come from the secret store, never `process.env` directly**: `await
+  SecretStoreFactory.instance().retrieve("openai-key", actor)`. Locally that falls back to the
+  environment (`openai-key` reads `OPENAI_KEY`), so the app runs on the laptop as written; deployed,
+  the key has to be set once — `anbaric secrets set openai-key` in the app's directory, the console's
+  Secrets page, or the `anbaric_secret_set` tool (ask the developer for the value; never echo it).
 - Serve HTTP on `process.env.PORT` (default 3000). Deployed, the app is served at the root of its own
   address and also proxied at `/app/<name>` — use **relative** links/redirects so both work.
 - `job.properties.get`, `.has` and `.getMany` are **asynchronous** — always `await` them. An action's

@@ -216,6 +216,37 @@ const tools : Array<Tool> = [
             return { id: args.jobId, killed: true };
         },
     },
+    {
+        name: "anbaric_secrets_list",
+        description: "List the names of the secrets a deployed app holds (API keys and other credentials it reads with SecretStoreFactory.instance().retrieve(name)). "
+            + "Values are never returned - they can only be set or replaced.",
+        inputSchema: object({ app: { type: "string", description: "The app name" } }, ["app"]),
+        run: async (args) => (await anbaricClient()).get("/secrets", { "x-anbaric-app": args.app }),
+    },
+    {
+        name: "anbaric_secret_set",
+        description: "Set or replace a secret for a deployed app, so the app can read it with `secrets.retrieve(name)`. Use this to give a deployed app "
+            + "a model API key or other credential: locally the app falls back to the environment (`openai-key` reads OPENAI_KEY), but a deployed app "
+            + "only has what is set here. Ask the developer for the value rather than guessing it, and never echo it back.",
+        inputSchema: object({
+            app: { type: "string", description: "The app name" },
+            name: { type: "string", description: "The secret's name, e.g. openai-key" },
+            value: { type: "string", description: "The secret value" },
+        }, ["app", "name", "value"]),
+        run: async (args) => {
+            await (await anbaricClient()).put(`/secrets/${encodeURIComponent(args.name)}`, { value: args.value }, { "x-anbaric-app": args.app });
+            return { app: args.app, name: args.name, set: true };
+        },
+    },
+    {
+        name: "anbaric_secret_delete",
+        description: "Remove a secret from a deployed app.",
+        inputSchema: object({ app: { type: "string", description: "The app name" }, name: { type: "string" } }, ["app", "name"]),
+        run: async (args) => {
+            await (await anbaricClient()).delete(`/secrets/${encodeURIComponent(args.name)}`, { "x-anbaric-app": args.app });
+            return { app: args.app, name: args.name, deleted: true };
+        },
+    },
 ];
 
 export {tools};
