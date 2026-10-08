@@ -17052,6 +17052,8 @@ var openBrowser = (url) => {
 
 // src/login.ts
 var PING_TIMEOUT_MS = 1500;
+var REACHABLE_ATTEMPTS = 10;
+var REACHABLE_RETRY_MS = 3e3;
 var DEFAULT_WAIT_S = 60;
 var MAX_WAIT_S = 300;
 var POLL_INTERVAL_MS3 = 1e3;
@@ -17065,7 +17067,7 @@ var requiresAuthentication = async (platformUrl) => {
   }
   return response.status !== 404;
 };
-var tenantReachable = async (platformUrl, tenant) => {
+var pingTenant = async (platformUrl, tenant) => {
   try {
     const response = await fetch(`${platformUrl}/ping`, { headers: { "x-anbaric-tenant": tenant }, signal: AbortSignal.timeout(PING_TIMEOUT_MS) });
     const body = await response.json();
@@ -17073,6 +17075,13 @@ var tenantReachable = async (platformUrl, tenant) => {
   } catch {
     return false;
   }
+};
+var tenantReachable = async (platformUrl, tenant) => {
+  for (let attempt = 1; attempt <= REACHABLE_ATTEMPTS; attempt++) {
+    if (await pingTenant(platformUrl, tenant)) return true;
+    if (attempt < REACHABLE_ATTEMPTS) await new Promise((resolve2) => setTimeout(resolve2, REACHABLE_RETRY_MS));
+  }
+  return false;
 };
 var pollOnce = async (request) => {
   const response = await fetch(`${request.authorizeUrl}/poll`);
@@ -17119,7 +17128,7 @@ var login = async (input) => {
         clientName: key.clientName,
         tenant,
         tenantReachable: reachable,
-        next: reachable === false ? `Signed in, but nothing is running yet for tenant "${tenant}". The developer should finish setting it up at ${held.platformUrl}/subscribe, then deploy.` : "Signed in. The other anbaric_* tools now work against this platform and tenant."
+        next: reachable === false ? `Signed in, but tenant "${tenant}" did not answer in the last half minute. If the browser shows it running it is still coming up - call anbaric_whoami again in a moment. If it was never set up, finish that at ${held.platformUrl}/subscribe.` : "Signed in. The other anbaric_* tools now work against this platform and tenant."
       };
     }
     await new Promise((resolve2) => setTimeout(resolve2, POLL_INTERVAL_MS3));
@@ -17174,7 +17183,7 @@ var tools = [
   },
   {
     name: "anbaric_login",
-    description: 'Sign this machine in to Anbaric Cloud, the way `anbaric login` does, without leaving the session. Opens the developer\'s browser to authorize this machine (production by default) and waits for them to finish; a first-time sign-up creates their account and environment in the browser first, so the answer is often "pending" - give them the link, let them finish, then call again with the returned requestId to pick up the wait. On "authorized" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works. Call this when anbaric_whoami says the developer is not signed in.',
+    description: 'Sign this machine in to Anbaric Cloud, the way `anbaric login` does, without leaving the session. Opens the developer\'s browser to authorize this machine (production by default) and waits for them to finish; a first-time sign-up creates their account and environment in the browser first, so the answer is often "pending" - give them the link, let them finish, then call again with the returned requestId to pick up the wait. On "authorized" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works; a tenant that has only just been set up can take a moment to answer, so if whoami fails straight after, try it again rather than concluding anything. Call this when anbaric_whoami says the developer is not signed in.',
     inputSchema: object3({
       environment: { type: "string", enum: ["production", "staging", "local"], description: "Which platform to sign in to (default production)" },
       platformUrl: { type: "string", description: "A platform URL instead of an environment, for a self-hosted platform" },
@@ -17370,7 +17379,7 @@ var tools = [
 
 // src/index.ts
 var server = new Server(
-  { name: "anbaric", version: "1.26.0" },
+  { name: "anbaric", version: "1.26.1" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

@@ -162,7 +162,8 @@ Then offer to do it now. The path (same code, platform injects all env):
 1. **Sign in once per machine with the `anbaric_login` MCP tool** (production by default). It opens the
    browser; a first-time user signs in, chooses *Build apps* and finishes setting up their environment
    there, so the tool often answers `pending` — hand them the link, wait, then call it again with the
-   `requestId` it gave you. `anbaric_whoami` confirms the session. (`anbaric login` in a terminal does
+   `requestId` it gave you. `anbaric_whoami` confirms the session; a tenant set up moments ago can take a
+   little while to answer, so if the first call fails, try it again rather than reporting a problem. (`anbaric login` in a terminal does
    the same, for someone without the MCP.)
 2. `anbaric app configure` — writes `.anbaric/app-config.json` (name + internalPort).
 3. `anbaric_deploy` (or `anbaric app deploy`) — packs the source; the platform builds and runs it.

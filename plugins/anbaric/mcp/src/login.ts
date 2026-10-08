@@ -4,6 +4,8 @@ import {KeyRequest} from "./platform/KeyRequest";
 import {openBrowser} from "./platform/BrowserOpener";
 
 const PING_TIMEOUT_MS = 1500;
+const REACHABLE_ATTEMPTS = 10;
+const REACHABLE_RETRY_MS = 3000;
 const DEFAULT_WAIT_S = 60;
 const MAX_WAIT_S = 300;
 const POLL_INTERVAL_MS = 1000;
@@ -42,7 +44,7 @@ const requiresAuthentication = async (platformUrl : string) : Promise<boolean> =
     return response.status !== 404;
 };
 
-const tenantReachable = async (platformUrl : string, tenant : string) : Promise<boolean> => {
+const pingTenant = async (platformUrl : string, tenant : string) : Promise<boolean> => {
     try {
         const response = await fetch(`${platformUrl}/ping`, { headers: { "x-anbaric-tenant": tenant }, signal: AbortSignal.timeout(PING_TIMEOUT_MS) });
         const body = await response.json();
@@ -50,6 +52,18 @@ const tenantReachable = async (platformUrl : string, tenant : string) : Promise<
     } catch {
         return false;
     }
+};
+
+/* The key is issued the moment the browser finishes, which for a new tenant
+   is a few seconds before the edge routes to it: the first ping after a
+   sign-up tends to miss even though the browser already shows the console.
+   So the question is asked for a while before the answer is taken as no. */
+const tenantReachable = async (platformUrl : string, tenant : string) : Promise<boolean> => {
+    for (let attempt = 1; attempt <= REACHABLE_ATTEMPTS; attempt++) {
+        if (await pingTenant(platformUrl, tenant)) return true;
+        if (attempt < REACHABLE_ATTEMPTS) await new Promise(resolve => setTimeout(resolve, REACHABLE_RETRY_MS));
+    }
+    return false;
 };
 
 const pollOnce = async (request : KeyRequest) => {
@@ -97,7 +111,8 @@ const login = async (input : LoginInput) : Promise<LoginResult> => {
             return {
                 status: "authorized", platformUrl: held.platformUrl, clientName: key.clientName, tenant, tenantReachable: reachable,
                 next: reachable === false
-                    ? `Signed in, but nothing is running yet for tenant "${tenant}". The developer should finish setting it up at ${held.platformUrl}/subscribe, then deploy.`
+                    ? `Signed in, but tenant "${tenant}" did not answer in the last half minute. If the browser shows it running it is still `
+                        + `coming up - call anbaric_whoami again in a moment. If it was never set up, finish that at ${held.platformUrl}/subscribe.`
                     : "Signed in. The other anbaric_* tools now work against this platform and tenant.",
             };
         }

@@ -61,7 +61,8 @@ const tools : Array<Tool> = [
             + "Opens the developer's browser to authorize this machine (production by default) and waits for them to finish; "
             + "a first-time sign-up creates their account and environment in the browser first, so the answer is often "
             + "\"pending\" - give them the link, let them finish, then call again with the returned requestId to pick up the wait. "
-            + "On \"authorized\" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works. "
+            + "On \"authorized\" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works; "
+            + "a tenant that has only just been set up can take a moment to answer, so if whoami fails straight after, try it again rather than concluding anything. "
             + "Call this when anbaric_whoami says the developer is not signed in.",
         inputSchema: object({
             environment: { type: "string", enum: ["production", "staging", "local"], description: "Which platform to sign in to (default production)" },
