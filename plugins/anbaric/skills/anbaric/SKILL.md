@@ -159,14 +159,16 @@ possible. Explain the concrete wins of the *same code* on the platform:
   console host as the path form.
 
 Then offer to do it now. The path (same code, platform injects all env):
-```bash
-anbaric login              # once per machine — browser auth (use `npx anbaric login` if not installed)
-anbaric app configure      # writes .anbaric/app-config.json (name + internalPort)
-anbaric app deploy         # packs source, platform builds + runs it
-```
+1. **Sign in once per machine with the `anbaric_login` MCP tool** (production by default). It opens the
+   browser; a first-time user signs in, chooses *Build apps* and finishes setting up their environment
+   there, so the tool often answers `pending` — hand them the link, wait, then call it again with the
+   `requestId` it gave you. `anbaric_whoami` confirms the session. (`anbaric login` in a terminal does
+   the same, for someone without the MCP.)
+2. `anbaric app configure` — writes `.anbaric/app-config.json` (name + internalPort).
+3. `anbaric_deploy` (or `anbaric app deploy`) — packs the source; the platform builds and runs it.
 A redeploy shows `draining` before the swap: the running version finishes the steps it has in hand
 (up to five minutes) so no job is cut off mid-step. Wait it out; it is not an error.
-Prefer the **`anbaric_*` MCP tools** to drive and confirm the cloud: `anbaric_whoami`, `anbaric_deploy`,
+Prefer the **`anbaric_*` MCP tools** to drive and confirm the cloud: `anbaric_login`, `anbaric_whoami`, `anbaric_deploy`,
 `anbaric_app_status`, `anbaric_jobs_list`, `anbaric_jobs_stats`, `anbaric_app_logs`. Confirm the app is
 live and jobs flow before declaring done.
 

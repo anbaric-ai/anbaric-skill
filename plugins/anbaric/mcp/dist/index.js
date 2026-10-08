@@ -12264,13 +12264,13 @@ var recordProcessor = (schema, ctx, _json, params) => {
         ...params,
         path: [...params.path, "propertyNames"]
       });
-      let pending = pendingRecords.get(ctx);
-      if (!pending) {
-        pending = [];
-        pendingRecords.set(ctx, pending);
+      let pending2 = pendingRecords.get(ctx);
+      if (!pending2) {
+        pending2 = [];
+        pendingRecords.set(ctx, pending2);
         ctx.deferred.push(() => rewriteKeyNames(ctx));
       }
-      pending.push(schema);
+      pending2.push(schema);
     }
     json.additionalProperties = process2(def.valueType, ctx, {
       ...params,
@@ -16742,6 +16742,14 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 var DEFAULT_PLATFORM_URL = "http://localhost:8787";
+var STAGING_PLATFORM_URL = "https://staging.cloud.anbaric.ai";
+var PRODUCTION_PLATFORM_URL = "https://cloud.anbaric.ai";
+var platformUrlForEnvironment = (environment) => {
+  if (environment === "local") return DEFAULT_PLATFORM_URL;
+  if (environment === "staging") return STAGING_PLATFORM_URL;
+  if (environment === "production") return PRODUCTION_PLATFORM_URL;
+  throw new Error(`Unknown environment "${environment}" - expected local, staging or production`);
+};
 var configDir = () => process.env.ANBARIC_CONFIG_DIR ?? join(homedir(), ".anbaric");
 var CliConfig = {
   async load() {
@@ -16990,6 +16998,141 @@ var awaitLive = async (client, appName) => {
 // src/guidance.ts
 var UX_GUIDANCE = "# UX practices for Anbaric apps\n\nAnbaric apps are asynchronous by nature: submitting a form doesn't finish the\nwork, it hands a job to a state machine that then moves on its own. A UI that\nignores that feels broken even when everything is working. These are the\npractices to follow when you build a human-facing interface on Anbaric.\n\n## Acknowledge a submission immediately\n\n**Always give feedback the moment a job update is submitted.** `updateJob` and\n`startJob` return once the change is *stored and queued* \u2014 not once the job has\nprogressed. If the page sits silent, the person cannot tell whether their click\nregistered, and will click again.\n\nSay what happened and what is happening next:\n\n```\n\u2713 Approval submitted \u2014 the job is being processed\u2026\n```\n\nDisable the button while the request is in flight so the same update can't be\nsent twice.\n\n## Then follow the job until it settles\n\nAfter acknowledging, watch the job so the page reflects reality rather than a\nguess. Poll it and re-render as the state changes:\n\n- **Update the page in place - don't reload it.** Expose the job's state as JSON\n  (read it from the machine's persistence and `serializeJob` it) and `fetch` that\n  from the page, updating the DOM as it changes. A full page refresh - a form\n  `POST` answered with a redirect, a meta refresh, `location.reload()` - is the\n  fallback for a client that cannot run script, not the default: it shows the\n  state as of the reload and leaves the person refreshing by hand to see it move.\n- **Poll at most once per second.** Anything faster adds load without telling\n  the user anything new; a job that transitions immediately is still only\n  observable per processing pass.\n- **Stop when there is nothing left to wait for** \u2014 the job reached a terminal\n  state, parked on an `Await`, or failed. Don't poll a settled job forever.\n- **Show the state, not just a spinner.** \"Awaiting approval\", \"Charging card\",\n  \"Failed \u2014 card declined\" tells someone far more than an endless whirl.\n- **Back off or stop after a reasonable period**, and say so, rather than\n  spinning indefinitely if nothing changes.\n\nA job that has parked on an `Await` is waiting for a *person*, possibly not the\none at the screen. Say what it is waiting for rather than implying the page is\nstill loading.\n\n## Surface failures honestly\n\nA job whose action threw is `Job.Status.FAILED`, with the reason in its audit\ntrail. Show that the work stopped and why. Silently leaving the last-known state\non screen turns a failure into a mystery.\n\n## Say it was built with Anbaric - quietly\n\nEvery app built on Anbaric carries a small **\"Built with Anbaric\"** line, at the\nfoot of the page or the bottom of the nav. It's an attribution, not a feature:\nsmall type, a muted tint, the ident (its Asriel Ink is near enough black) at\ntext height, and nothing that draws the eye away from the app's own UI.\n\nWith the design system's left rail you get it for free: `AppNav` **without an\n`account`** is the app variant, and puts the attribution at the foot of the rail.\nDon't pass an account in an app \u2014 the account menu is the console's; an app has\nno identity to show there and ends up displaying raw OAuth ids and empty menus.\n\n```tsx\nimport { AppNav } from '@anbaric/design-system/components/AppNav'\n\n<AppNav items={[{ label: 'Orders', value: 'orders', icon: 'receipt_long' }]} active={page} onChange={setPage} />\n```\n\nWithout the rail, it's one component at the foot of the page:\n\n```tsx\nimport { BuiltWithAnbaric } from '@anbaric/design-system/components/BuiltWithAnbaric'\n\n<footer><BuiltWithAnbaric /></footer>\n```\n\nWithout it, the same thing by hand - the ident lives at\n`shared/assets/anbaric-ident.svg` in the design system:\n\n```html\n<a href=\"https://anbaric.ai\" style=\"display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;opacity:.7;text-decoration:none;color:inherit\">\n    <img src=\"anbaric-ident.svg\" alt=\"\" width=\"12\" height=\"12\"> Built with Anbaric\n</a>\n```\n\n## Styling (optional)\n\nIf the user hasn't asked for a particular look, you may use the **Anbaric design\nsystem** \u2014 design tokens, brand assets and React components:\n<https://github.com/anbaric-ai/anbaric-cloud/tree/main/anbaric-design-system>.\nIt isn't published to npm, so copy in `tokens.css` and the components you need\nrather than adding a dependency. If the user asked for something specific \u2014\nTailwind, MUI, plain CSS, their own kit \u2014 use that instead; their choice wins.\n\n## See also\n\n- [Awaiting input](../features/awaiting-input.md) \u2014 pausing a job for a human\n- [Human-in-the-loop](human-in-the-loop.md) \u2014 approvals, forms and hand-offs\n- [Serving a web UI](../features/serving-a-web-ui.md) \u2014 putting data on a page\n";
 
+// src/login.ts
+import { randomUUID as randomUUID2 } from "node:crypto";
+
+// src/platform/KeyRequest.ts
+import { randomUUID } from "node:crypto";
+var POLL_INTERVAL_MS2 = 1e3;
+var HANDSHAKE_TIMEOUT_MS = 12e5;
+var KeyRequest = class {
+  constructor(platformUrl, requestId = randomUUID(), pollIntervalMs = POLL_INTERVAL_MS2, timeoutMs = HANDSHAKE_TIMEOUT_MS) {
+    this.platformUrl = platformUrl;
+    this.requestId = requestId;
+    this.pollIntervalMs = pollIntervalMs;
+    this.timeoutMs = timeoutMs;
+  }
+  platformUrl;
+  requestId;
+  pollIntervalMs;
+  timeoutMs;
+  get authorizeUrl() {
+    return `${this.platformUrl}/authorize-cli/${this.requestId}`;
+  }
+  async awaitKey() {
+    const deadline = Date.now() + this.timeoutMs;
+    while (Date.now() < deadline) {
+      const response = await fetch(`${this.authorizeUrl}/poll`);
+      if (response.status === 200) {
+        const issued = await response.json();
+        return {
+          platformUrl: this.platformUrl,
+          keyId: issued.keyId,
+          clientName: issued.clientName,
+          publicKey: issued.publicKey,
+          privateKey: issued.privateKey,
+          tenant: issued.tenant
+        };
+      }
+      await new Promise((resolve2) => setTimeout(resolve2, this.pollIntervalMs));
+    }
+    throw new Error("Timed out waiting for the browser authorization - run `anbaric login` to try again");
+  }
+};
+
+// src/platform/BrowserOpener.ts
+import { spawn as spawn2 } from "node:child_process";
+var openBrowser = (url) => {
+  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  const child = spawn2(command, [url], { stdio: "ignore", detached: true });
+  child.on("error", () => {
+  });
+  child.unref();
+};
+
+// src/login.ts
+var PING_TIMEOUT_MS = 1500;
+var DEFAULT_WAIT_S = 60;
+var MAX_WAIT_S = 300;
+var POLL_INTERVAL_MS3 = 1e3;
+var pending = /* @__PURE__ */ new Map();
+var requiresAuthentication = async (platformUrl) => {
+  let response;
+  try {
+    response = await fetch(`${platformUrl}/api/v2/whoami`, { redirect: "manual", signal: AbortSignal.timeout(PING_TIMEOUT_MS) });
+  } catch {
+    throw new Error(`Nothing answered at ${platformUrl} - check the address, or that the platform is running`);
+  }
+  return response.status !== 404;
+};
+var tenantReachable = async (platformUrl, tenant) => {
+  try {
+    const response = await fetch(`${platformUrl}/ping`, { headers: { "x-anbaric-tenant": tenant }, signal: AbortSignal.timeout(PING_TIMEOUT_MS) });
+    const body = await response.json();
+    return response.ok && body.tenant === tenant;
+  } catch {
+    return false;
+  }
+};
+var pollOnce = async (request) => {
+  const response = await fetch(`${request.authorizeUrl}/poll`);
+  return response.status === 200 ? await response.json() : void 0;
+};
+var login = async (input) => {
+  const waitMs = Math.min(Math.max(input.waitSeconds ?? DEFAULT_WAIT_S, 1), MAX_WAIT_S) * 1e3;
+  let held = input.requestId ? pending.get(input.requestId) : void 0;
+  if (input.requestId && !held) {
+    throw new Error(`No sign-in in progress with id "${input.requestId}" - call anbaric_login without one to start again`);
+  }
+  if (!held) {
+    const platformUrl = input.platformUrl ?? platformUrlForEnvironment(input.environment ?? "production");
+    if (!await requiresAuthentication(platformUrl)) {
+      const path = await CliConfig.save({ platformUrl, tenant: input.tenant });
+      return { status: "open", platformUrl, next: `This platform has authentication disabled; ${platformUrl} is saved to ${path} and the other tools will use it.` };
+    }
+    const id = randomUUID2();
+    const request = new KeyRequest(platformUrl, id);
+    held = { id, request, platformUrl, tenant: input.tenant };
+    pending.set(id, held);
+    openBrowser(request.authorizeUrl);
+  }
+  const deadline = Date.now() + waitMs;
+  while (Date.now() < deadline) {
+    const issued = await pollOnce(held.request);
+    if (issued) {
+      pending.delete(held.id);
+      const key = {
+        platformUrl: held.platformUrl,
+        keyId: issued.keyId,
+        clientName: issued.clientName,
+        publicKey: issued.publicKey,
+        privateKey: issued.privateKey,
+        tenant: issued.tenant
+      };
+      await CliConfig.saveKey(key);
+      const tenant = key.tenant ?? held.tenant;
+      await CliConfig.save({ platformUrl: held.platformUrl, tenant });
+      const reachable = tenant ? await tenantReachable(held.platformUrl, tenant) : void 0;
+      return {
+        status: "authorized",
+        platformUrl: held.platformUrl,
+        clientName: key.clientName,
+        tenant,
+        tenantReachable: reachable,
+        next: reachable === false ? `Signed in, but nothing is running yet for tenant "${tenant}". The developer should finish setting it up at ${held.platformUrl}/subscribe, then deploy.` : "Signed in. The other anbaric_* tools now work against this platform and tenant."
+      };
+    }
+    await new Promise((resolve2) => setTimeout(resolve2, POLL_INTERVAL_MS3));
+  }
+  return {
+    status: "pending",
+    requestId: held.id,
+    authorizeUrl: held.request.authorizeUrl,
+    platformUrl: held.platformUrl,
+    next: `The browser has been opened to ${held.request.authorizeUrl}; if it did not open, give the developer that link. Ask them to sign in and, if this is their first time, choose "Build apps" and finish setting up their environment. Then call anbaric_login again with requestId "${held.id}" to pick up the wait.`
+  };
+};
+
 // src/tools.ts
 var noInput = { type: "object", properties: {}, additionalProperties: false };
 var object3 = (properties, required2 = []) => ({ type: "object", properties, required: required2, additionalProperties: false });
@@ -17030,8 +17173,20 @@ var tools = [
     run: async () => UX_GUIDANCE
   },
   {
+    name: "anbaric_login",
+    description: 'Sign this machine in to Anbaric Cloud, the way `anbaric login` does, without leaving the session. Opens the developer\'s browser to authorize this machine (production by default) and waits for them to finish; a first-time sign-up creates their account and environment in the browser first, so the answer is often "pending" - give them the link, let them finish, then call again with the returned requestId to pick up the wait. On "authorized" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works. Call this when anbaric_whoami says the developer is not signed in.',
+    inputSchema: object3({
+      environment: { type: "string", enum: ["production", "staging", "local"], description: "Which platform to sign in to (default production)" },
+      platformUrl: { type: "string", description: "A platform URL instead of an environment, for a self-hosted platform" },
+      tenant: { type: "string", description: "The tenant to use, when the developer belongs to more than one" },
+      requestId: { type: "string", description: "The id from a pending answer, to keep waiting on that sign-in rather than start another" },
+      waitSeconds: { type: "integer", minimum: 1, maximum: 300, description: "How long to wait for the browser before answering pending (default 60)" }
+    }),
+    run: async (args) => login(args)
+  },
+  {
     name: "anbaric_whoami",
-    description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs.",
+    description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs; if they are not, anbaric_login signs them in.",
     inputSchema: noInput,
     run: async () => (await anbaricClient()).get("/whoami")
   },
@@ -17058,7 +17213,7 @@ var tools = [
   },
   {
     name: "anbaric_deploy",
-    description: "Package a local Anbaric app directory (its .anbaric/app-config.json supplies name and port), upload it and wait for the build to go live. A running version is drained first - it finishes the steps it has in hand, up to five minutes - so a redeploy never loses in-flight work; the wait covers that. Returns the final status and URL. The developer must be signed in (`anbaric login`).",
+    description: "Package a local Anbaric app directory (its .anbaric/app-config.json supplies name and port), upload it and wait for the build to go live. A running version is drained first - it finishes the steps it has in hand, up to five minutes - so a redeploy never loses in-flight work; the wait covers that. Returns the final status and URL. The developer must be signed in (anbaric_login).",
     inputSchema: object3({
       directory: { type: "string", description: "Path to the app project root (the folder containing .anbaric/app-config.json)" }
     }, ["directory"]),
@@ -17215,7 +17370,7 @@ var tools = [
 
 // src/index.ts
 var server = new Server(
-  { name: "anbaric", version: "1.25.0" },
+  { name: "anbaric", version: "1.26.0" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

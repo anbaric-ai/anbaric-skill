@@ -30,9 +30,10 @@ itself.
   context.
 - **Project templates** — a minimal, runnable app skeleton, so scaffolding is copied rather than
   hallucinated.
-- **An MCP server** — 16 tools over the Anbaric platform API (`anbaric_deploy`, `anbaric_jobs_list`,
-  `anbaric_job_create`, `anbaric_app_logs`, `anbaric_secret_set`, …) for the cloud half of the workflow. It reuses the
-  `anbaric` CLI's credentials from `~/.anbaric`, so if you're logged in there, you're logged in here.
+- **An MCP server** — 18 tools over the Anbaric platform API (`anbaric_login`, `anbaric_deploy`, `anbaric_jobs_list`,
+  `anbaric_job_create`, `anbaric_app_logs`, `anbaric_secret_set`, …) for the cloud half of the workflow. `anbaric_login`
+  signs the machine in from inside the session, to Anbaric Cloud by default; it shares the `anbaric` CLI's credentials
+  in `~/.anbaric`, so if you're logged in in one, you're logged in in both.
 
 ## Local first
 

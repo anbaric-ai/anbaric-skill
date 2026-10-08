@@ -2,6 +2,7 @@ import {PlatformClient} from "./platform/PlatformClient";
 import {actorName, anbaricClient} from "./client";
 import {deployApp} from "./deploy";
 import {UX_GUIDANCE} from "./guidance";
+import {login} from "./login";
 
 type Tool = {
     name : string,
@@ -55,8 +56,25 @@ const tools : Array<Tool> = [
         run: async () => UX_GUIDANCE,
     },
     {
+        name: "anbaric_login",
+        description: "Sign this machine in to Anbaric Cloud, the way `anbaric login` does, without leaving the session. "
+            + "Opens the developer's browser to authorize this machine (production by default) and waits for them to finish; "
+            + "a first-time sign-up creates their account and environment in the browser first, so the answer is often "
+            + "\"pending\" - give them the link, let them finish, then call again with the returned requestId to pick up the wait. "
+            + "On \"authorized\" the key and platform are saved under ~/.anbaric and every other anbaric_* tool works. "
+            + "Call this when anbaric_whoami says the developer is not signed in.",
+        inputSchema: object({
+            environment: { type: "string", enum: ["production", "staging", "local"], description: "Which platform to sign in to (default production)" },
+            platformUrl: { type: "string", description: "A platform URL instead of an environment, for a self-hosted platform" },
+            tenant: { type: "string", description: "The tenant to use, when the developer belongs to more than one" },
+            requestId: { type: "string", description: "The id from a pending answer, to keep waiting on that sign-in rather than start another" },
+            waitSeconds: { type: "integer", minimum: 1, maximum: 300, description: "How long to wait for the browser before answering pending (default 60)" },
+        }),
+        run: async (args) => login(args),
+    },
+    {
         name: "anbaric_whoami",
-        description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs.",
+        description: "Report the platform URL, tenant and identity this session is authenticated as. Use it to confirm the developer is signed in before deploying or driving jobs; if they are not, anbaric_login signs them in.",
         inputSchema: noInput,
         run: async () => (await anbaricClient()).get("/whoami"),
     },
@@ -87,7 +105,7 @@ const tools : Array<Tool> = [
         name: "anbaric_deploy",
         description: "Package a local Anbaric app directory (its .anbaric/app-config.json supplies name and port), upload it and wait for the build to go live. "
             + "A running version is drained first - it finishes the steps it has in hand, up to five minutes - so a redeploy never loses in-flight work; "
-            + "the wait covers that. Returns the final status and URL. The developer must be signed in (`anbaric login`).",
+            + "the wait covers that. Returns the final status and URL. The developer must be signed in (anbaric_login).",
         inputSchema: object({
             directory: { type: "string", description: "Path to the app project root (the folder containing .anbaric/app-config.json)" },
         }, ["directory"]),
