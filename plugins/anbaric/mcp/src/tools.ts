@@ -3,6 +3,8 @@ import {actorName, anbaricClient} from "./client";
 import {deployApp} from "./deploy";
 import {UX_GUIDANCE} from "./guidance";
 import {login} from "./login";
+import {invalidateSkillTools} from "./skills";
+import {server} from "./server";
 
 type Tool = {
     name : string,
@@ -71,7 +73,15 @@ const tools : Array<Tool> = [
             requestId: { type: "string", description: "The id from a pending answer, to keep waiting on that sign-in rather than start another" },
             waitSeconds: { type: "integer", minimum: 1, maximum: 300, description: "How long to wait for the browser before answering pending (default 60)" },
         }),
-        run: async (args) => login(args),
+        run: async (args) => {
+            const outcome = await login(args);
+            // A tenant has just come into view, and with it whatever skills it holds.
+            if (outcome.status === "authorized") {
+                invalidateSkillTools();
+                await server.sendToolListChanged().catch(() => undefined);
+            }
+            return outcome;
+        },
     },
     {
         name: "anbaric_whoami",

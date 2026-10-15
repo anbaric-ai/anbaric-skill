@@ -1,15 +1,14 @@
-import {Server} from "@modelcontextprotocol/sdk/server/index.js";
 import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
 import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotocol/sdk/types.js";
+import {server} from "./server";
+import {tenantSkillTools} from "./skills";
 import {tools} from "./tools";
 
-const server = new Server(
-    { name: "anbaric", version: "1.26.1" },
-    { capabilities: { tools: {} } },
-);
+// The platform's own tools, and then whatever skills the tenant has written.
+const allTools = async () => [...tools, ...(await tenantSkillTools())];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: tools.map(tool => ({
+    tools: (await allTools()).map(tool => ({
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema,
@@ -17,7 +16,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find(candidate => candidate.name === request.params.name);
+    const tool = (await allTools()).find(candidate => candidate.name === request.params.name);
     if (!tool) throw new Error(`No such tool "${request.params.name}"`);
 
     try {

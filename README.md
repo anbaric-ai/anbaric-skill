@@ -34,6 +34,9 @@ itself.
   `anbaric_job_create`, `anbaric_app_logs`, `anbaric_secret_set`, …) for the cloud half of the workflow. `anbaric_login`
   signs the machine in from inside the session, to Anbaric Cloud by default; it shares the `anbaric` CLI's credentials
   in `~/.anbaric`, so if you're logged in in one, you're logged in in both.
+- **Tenant skills as tools** — guidance a tenant's builders write on the console's Skills page is
+  offered to the agent as `anbaric_skill_<id>` tools: the hints are the description, the body is what
+  the tool returns. Fetched from the tenant when tools are listed, so nothing here needs updating.
 
 ## Local first
 

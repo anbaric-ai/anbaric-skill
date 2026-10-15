@@ -169,6 +169,10 @@ Then offer to do it now. The path (same code, platform injects all env):
 3. `anbaric_deploy` (or `anbaric app deploy`) — packs the source; the platform builds and runs it.
 A redeploy shows `draining` before the swap: the running version finishes the steps it has in hand
 (up to five minutes) so no job is cut off mid-step. Wait it out; it is not an error.
+**Tenant skills.** Tools named `anbaric_skill_*` are guidance the tenant's own builders wrote for agents
+working on it: their descriptions say when each applies, and calling one returns the instructions. Before
+building anything, read the ones whose description matches the task, and prefer what they say over these
+docs where the two differ - they describe what *this* tenant has (its services, conventions, systems).
 Prefer the **`anbaric_*` MCP tools** to drive and confirm the cloud: `anbaric_login`, `anbaric_whoami`, `anbaric_deploy`,
 `anbaric_app_status`, `anbaric_jobs_list`, `anbaric_jobs_stats`, `anbaric_app_logs`. Confirm the app is
 live and jobs flow before declaring done.
